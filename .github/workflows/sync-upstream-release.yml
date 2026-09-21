@@ -73,7 +73,7 @@ jobs:
           node scripts/apply-custom-quota-hook.mjs
 
           # 7. Commit changes on top of the release
-          git add .github/workflows/ scripts/ packages/web/server/lib/quota packages/ui/src/types/quota.ts packages/ui/src/components/sections/usage/QuotaCredentials.tsx
+          git add -A
           git commit -m "chore(release): apply custom quota hook on $UPSTREAM_TAG"
 
           # 8. Tag this commit with the upstream tag

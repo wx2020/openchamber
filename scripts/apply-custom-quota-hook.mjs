@@ -136,5 +136,26 @@ if (fs.existsSync(quotaCredsPath)) {
   }
 }
 
+// 5. Remove upstream official release workflows that require private credentials
+const impossibleWorkflows = [
+  'release.yml',
+  'vscode-extension.yml',
+  'mobile-release.yml',
+  'release-desktop-smoke.yml',
+  'sdk-preview.yml',
+];
+
+for (const workflowFile of impossibleWorkflows) {
+  const filePath = path.join(ROOT, '.github', 'workflows', workflowFile);
+  if (fs.existsSync(filePath)) {
+    try {
+      fs.unlinkSync(filePath);
+      console.log(`🗑️ Removed impossible upstream workflow: .github/workflows/${workflowFile}`);
+    } catch (err) {
+      console.warn(`[Quota Hook] Could not remove ${workflowFile}:`, err.message);
+    }
+  }
+}
+
 console.log('🎉 Custom Quota Provider Hook applied successfully!');
 
