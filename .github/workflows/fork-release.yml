@@ -51,7 +51,9 @@ jobs:
           prerelease: false
           body: |
             Automated release for **${{ steps.get_tag.outputs.tag }}** with Custom Quota Provider Hook.
-            Synced from upstream official release.
+
+            - **Upstream Release**: https://github.com/openchamber/openchamber/releases/tag/${{ steps.get_tag.outputs.tag }}
+            - **Custom Quota Documentation**: [中文扩展说明 (Chinese Guide)](https://github.com/wx2020/openchamber/blob/main/docs/CUSTOM_QUOTA_PROVIDERS.zh-CN.md)
           generate_release_notes: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
