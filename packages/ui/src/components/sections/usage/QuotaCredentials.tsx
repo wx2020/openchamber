@@ -5,7 +5,7 @@ import { toast } from '@/components/ui';
 import { useI18n } from '@/lib/i18n';
 import { runtimeFetch } from '@/lib/runtime-fetch';
 
-type ProviderId = 'exe-dev' | 'ollama-cloud' | 'cursor';
+type ProviderId = 'exe-dev' | 'ollama-cloud' | 'cursor' | (string & {});
 type Status = { configured: boolean; secretMasked?: string };
 type CredentialPayload = { usageToken?: string; cookie?: string; accessToken?: string; refreshToken?: string };
 const EXE_DEV_TOKEN_COMMAND = `ssh exe.dev "ssh-key generate-api-key --label=openchamber --exp=30d --cmds='billing credits usage'"`;

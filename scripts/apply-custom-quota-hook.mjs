@@ -120,4 +120,21 @@ if (!quotaTypeContent.includes('(string & {})')) {
   console.log('ℹ️ packages/ui/src/types/quota.ts already patched');
 }
 
+// 4. Patch packages/ui/src/components/sections/usage/QuotaCredentials.tsx
+const quotaCredsPath = path.join(ROOT, 'packages', 'ui', 'src', 'components', 'sections', 'usage', 'QuotaCredentials.tsx');
+if (fs.existsSync(quotaCredsPath)) {
+  let quotaCredsContent = fs.readFileSync(quotaCredsPath, 'utf8');
+  if (!quotaCredsContent.includes('| (string & {})')) {
+    quotaCredsContent = quotaCredsContent.replace(
+      /type ProviderId = 'exe-dev' \| 'ollama-cloud' \| 'cursor';/,
+      `type ProviderId = 'exe-dev' | 'ollama-cloud' | 'cursor' | (string & {});`
+    );
+    fs.writeFileSync(quotaCredsPath, quotaCredsContent, 'utf8');
+    console.log('✅ Patched packages/ui/src/components/sections/usage/QuotaCredentials.tsx');
+  } else {
+    console.log('ℹ️ packages/ui/src/components/sections/usage/QuotaCredentials.tsx already patched');
+  }
+}
+
 console.log('🎉 Custom Quota Provider Hook applied successfully!');
+
