@@ -131,28 +131,30 @@ Go deeper with the OpenChamber guides:
 - [Mobile](packages/docs/content/docs/mobile.mdx)
 - [Security](packages/docs/content/docs/security.mdx)
 - [Troubleshooting](packages/docs/content/docs/troubleshooting.mdx)
+- [Custom quota providers (中文扩展说明)](docs/CUSTOM_QUOTA_PROVIDERS.zh-CN.md)
 
 For self-hosting details, see the [reverse proxy guide](docs/REVERSE_PROXY.md). For custom theme authoring, see the [custom themes guide](docs/CUSTOM_THEMES.md).
 
-## Custom quota providers (自定义提供商用量扩展)
+## Custom quota providers
 
 This fork tracks upstream OpenChamber releases and adds an external hook for custom quota providers.
 
-本 Fork 仓库自动同步上游官方 Release，并内置外部用量提供商挂载机制。无需修改核心源码，在本地目录放置单个 JavaScript 脚本即可添加自定义 Provider 的用量监控。
+> [!NOTE]
+> 包含中文完整说明的扩展文档请参阅：[中文扩展说明 (Chinese Guide)](docs/CUSTOM_QUOTA_PROVIDERS.zh-CN.md)。
 
-全平台预编译安装包可在 [GitHub Releases (wx2020/openchamber)](https://github.com/wx2020/openchamber/releases) 下载，包含 Windows `.exe`、Linux `.AppImage`、Android `.apk`、VS Code `.vsix` 和 Web 安装包。
+Prebuilt installers are available on [GitHub Releases (wx2020/openchamber)](https://github.com/wx2020/openchamber/releases) (Windows `.exe`, Linux `.AppImage`, Android `.apk`, VS Code `.vsix`, and Web bundle).
 
-### 脚本存放路径
+### Provider script directory
 
-服务启动时会自动扫描以下目录中的 `*.js`、`*.mjs` 或 `*.cjs` 模块：
+On startup, OpenChamber scans for `*.js`, `*.mjs`, or `*.cjs` modules in:
 
 - Linux / macOS: `~/.config/openchamber/quota-providers/`
 - Windows: `%USERPROFILE%\.config\openchamber\quota-providers\`
-- 自定义环境变量: `OPENCHAMBER_QUOTA_PROVIDERS_DIR=/path/to/providers`
+- Custom environment variable: `OPENCHAMBER_QUOTA_PROVIDERS_DIR=/path/to/providers`
 
-### 扩展脚本规范
+### Provider module specification
 
-每个扩展脚本导出一个符合以下格式的 ESM 模块：
+Each provider file exports an ESM module matching this contract:
 
 ```javascript
 // ~/.config/openchamber/quota-providers/my-provider.js
@@ -160,14 +162,13 @@ This fork tracks upstream OpenChamber releases and adds an external hook for cus
 export const providerId = 'my-provider';
 export const providerName = 'My Custom Provider';
 
-// 检查凭证是否已配置（如不需要密钥可直接返回 true）
+// Return true if credentials are configured (or if no credentials are required)
 export function isConfigured(credentials) {
   return Boolean(credentials?.apiKey);
 }
 
-// 获取用量窗口数据
+// Fetch quota usage windows
 export async function fetchQuota(credentials, { signal } = {}) {
-  // 从自定义接口或代理拉取用量数据
   const res = await fetch('https://api.example.com/usage', {
     headers: {
       Authorization: `Bearer ${credentials.apiKey}`,
@@ -176,18 +177,17 @@ export async function fetchQuota(credentials, { signal } = {}) {
   });
   const data = await res.json();
 
-  // 返回用量窗口数组
   return [
     {
       label: '5-hour window',
       usedPercent: Math.min(100, Math.round((data.used / data.total) * 100)),
-      resetAt: data.resetsAt, // 可选 ISO 时间字符串
+      resetAt: data.resetsAt, // optional ISO string
     },
   ];
 }
 ```
 
-放置脚本后，重启 OpenChamber 并在设置（Settings -> Providers）中配置密钥，界面即可实时展示自定义提供商的用量与重置时间。
+After placing your script, restart OpenChamber. Configure your credentials under **Settings → Providers**, and the usage bar will display the custom quota and reset countdown. For the full guide in Chinese, see [CUSTOM_QUOTA_PROVIDERS.zh-CN.md](docs/CUSTOM_QUOTA_PROVIDERS.zh-CN.md).
 
 ## Why OpenCode?
 
