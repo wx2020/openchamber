@@ -1,3 +1,4 @@
+import { ensureCustomQuotaProvidersLoaded } from '../custom-loader.js';
 /**
  * Quota Providers Registry
  *
@@ -165,6 +166,10 @@ const registry = {
   }
 };
 
+// Custom quota hook: register external providers dynamically
+ensureCustomQuotaProvidersLoaded(registry);
+
+
 const pendingFetches = new Map();
 
 
@@ -185,6 +190,7 @@ export const listConfiguredQuotaProviders = () => {
 };
 
 const fetchQuotaForProviderUncoalesced = async (providerId) => {
+  await ensureCustomQuotaProvidersLoaded(registry);
   const provider = registry[providerId];
 
   if (!provider) {

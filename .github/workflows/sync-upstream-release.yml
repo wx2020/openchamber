@@ -1,0 +1,96 @@
+name: Sync Upstream Release & Rebase
+
+on:
+  schedule:
+    - cron: '0 */6 * * *'
+  workflow_dispatch:
+    inputs:
+      force_release:
+        description: 'Force re-sync and release even if tag exists locally'
+        required: false
+        default: false
+        type: boolean
+
+permissions:
+  contents: write
+
+jobs:
+  check-and-sync:
+    runs-on: ubuntu-latest
+    outputs:
+      should_release: ${{ steps.sync_step.outputs.should_release }}
+      upstream_tag: ${{ steps.sync_step.outputs.upstream_tag }}
+    steps:
+      - name: Checkout Fork Repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Configure Git Identity
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Check and Sync Upstream Release
+        id: sync_step
+        env:
+          FORCE_RELEASE: ${{ github.event.inputs.force_release || 'false' }}
+        run: |
+          set -e
+          # 1. Fetch latest release tag from upstream openchamber/openchamber
+          UPSTREAM_TAG=$(curl -s https://api.github.com/repos/openchamber/openchamber/releases/latest | jq -r .tag_name)
+          if [ "$UPSTREAM_TAG" = "null" ] || [ -z "$UPSTREAM_TAG" ]; then
+            echo "::error::Failed to fetch upstream release tag."
+            exit 1
+          fi
+
+          echo "Upstream latest release tag: $UPSTREAM_TAG"
+
+          # 2. Check if this tag already exists in local tags
+          TAG_EXISTS=$(git tag -l "$UPSTREAM_TAG" || true)
+          if [ -n "$TAG_EXISTS" ] && [ "$FORCE_RELEASE" != "true" ]; then
+            echo "Tag $UPSTREAM_TAG already exists in fork and force_release is false. Nothing to do."
+            echo "should_release=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          echo "Proceeding with sync for release: $UPSTREAM_TAG"
+          echo "should_release=true" >> "$GITHUB_OUTPUT"
+          echo "upstream_tag=$UPSTREAM_TAG" >> "$GITHUB_OUTPUT"
+
+          # 3. Add upstream remote and fetch tags
+          git remote add upstream https://github.com/openchamber/openchamber.git || true
+          git fetch upstream --tags
+
+          # 4. Checkout the upstream release tag as a working branch
+          git checkout -B "sync-$UPSTREAM_TAG" "refs/tags/$UPSTREAM_TAG"
+
+          # 5. Bring over the custom workflows and hook injection script from main
+          git checkout origin/main -- .github/workflows/sync-upstream-release.yml .github/workflows/fork-release.yml scripts/apply-custom-quota-hook.mjs
+
+          # 6. Run hook injection script
+          node scripts/apply-custom-quota-hook.mjs
+
+          # 7. Commit changes on top of the release
+          git add .github/workflows/ scripts/ packages/web/server/lib/quota packages/ui/src/types/quota.ts
+          git commit -m "chore(release): apply custom quota hook on $UPSTREAM_TAG"
+
+          # 8. Tag this commit with the upstream tag
+          git tag -f "$UPSTREAM_TAG"
+
+          # 9. Push tag to fork
+          git push origin "$UPSTREAM_TAG" --force
+
+          # 10. Fast-forward / update main to this release
+          git checkout main
+          git reset --hard "sync-$UPSTREAM_TAG"
+          git push origin main --force
+          echo "Successfully synced and pushed $UPSTREAM_TAG to origin/main and tags!"
+
+  trigger-release:
+    needs: check-and-sync
+    if: needs.check-and-sync.outputs.should_release == 'true'
+    uses: ./.github/workflows/fork-release.yml
+    with:
+      tag: ${{ needs.check-and-sync.outputs.upstream_tag }}
