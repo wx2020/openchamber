@@ -5,9 +5,9 @@ import { pathToFileURL } from 'node:url';
 
 // Directories where custom quota providers can be placed:
 // 1. ~/.config/openchamber/quota-providers (user config directory)
-// 2. OPENCHAMBER_CUSTOM_QUOTA_DIR (optional environment variable override)
+// 2. OPENCHAMBER_QUOTA_PROVIDERS_DIR or OPENCHAMBER_CUSTOM_QUOTA_DIR (optional environment variable override)
 const USER_CONFIG_DIR = path.join(os.homedir(), '.config', 'openchamber', 'quota-providers');
-const ENV_DIR = process.env.OPENCHAMBER_CUSTOM_QUOTA_DIR;
+const ENV_DIR = process.env.OPENCHAMBER_QUOTA_PROVIDERS_DIR || process.env.OPENCHAMBER_CUSTOM_QUOTA_DIR;
 
 export async function loadCustomQuotaProviders() {
   const customProviders = {};
@@ -18,7 +18,7 @@ export async function loadCustomQuotaProviders() {
 
     let files = [];
     try {
-      files = fs.readdirSync(dir).filter((file) => file.endsWith('.js') || file.endsWith('.mjs'));
+      files = fs.readdirSync(dir).filter((file) => file.endsWith('.js') || file.endsWith('.mjs') || file.endsWith('.cjs'));
     } catch (err) {
       console.warn(`[Quota Hook] Failed to read directory ${dir}:`, err.message);
       continue;
